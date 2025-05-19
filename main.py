@@ -221,7 +221,7 @@ async def add_filling(message: types.Message, state: FSMContext):
                                  MainStates.in_parts3d), F.text == 'Назад')
 async def back_handler(message: types.Message, state: FSMContext):
     match await state.get_state():
-        case 'MainStates:in_parts3d_info':
+        case 'MainStates:in_part3d_info':
             await open_3d_model(message, state)
         case 'MainStates:in_parts3d':
             await send_main_menu(message, state)
