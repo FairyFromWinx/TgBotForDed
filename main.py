@@ -16,7 +16,7 @@ from bot import bot
 from database import Parts3d, get_session
 from filters import Registered, Review3d, Edit3d
 from functions import send_register_query, allow_register_query, generate_rights_keyboard, parts_keyboard_constructor, \
-    get_part_info, construct_part_info_keyboard
+    get_part_info, construct_part_info_keyboard, upload_3mf
 from keyboards_makets import MainMenuMarkUp
 
 main_router = Router()
@@ -38,11 +38,13 @@ class MainStates(StatesGroup):
 
 class PartCreating(StatesGroup):
     name = State()
+    image = State()
     count = State()
     weight = State()
     time_on_A1mini = State()
     time_on_P1S = State()
     filling = State()
+    three_mf = State()
 
 # РЕГИСТРАЦИЯ ---------
 
@@ -130,7 +132,7 @@ async def get_options(query: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.in_part3d_info)
     await state.update_data(part_name=query.data, part_query=query)
     keyboard = await construct_part_info_keyboard(query.data, Parts3d)
-    text_keyboard = ReplyKeyboardBuilder().button(text="Назад").as_markup(resize_keyboard=True)
+    text_keyboard = ReplyKeyboardBuilder().button(text="Назад").button(text="Удалить").as_markup(resize_keyboard=True)
     await query.message.answer('.', reply_markup=text_keyboard)
     await query.message.answer(query.data, reply_markup=keyboard)
 
@@ -138,7 +140,7 @@ async def get_options(query: types.CallbackQuery, state: FSMContext):
 async def edit_option(query: types.CallbackQuery, state: FSMContext):
     await state.set_state(MainStates.property_edit)
     await state.update_data(part_property=query.data)
-    await query.message.answer('Введите новое значение:')
+    await query.message.answer('Введите/отправьте новое значение/файл:')
 
 @main_router.message(StateFilter(MainStates.property_edit))
 async def confirm_edit(message: types.Message, state: FSMContext):
@@ -148,6 +150,8 @@ async def confirm_edit(message: types.Message, state: FSMContext):
         match await state.get_value('part_property'):
             case 'name':
                 part.name = message.text
+            case 'image':
+                part.image = message.message_id
             case 'count':
                 part.count = message.text
             case 'weight':
@@ -156,6 +160,8 @@ async def confirm_edit(message: types.Message, state: FSMContext):
                 part.time_on_A1mini = message.text
             case 'P1S':
                 part.time_on_P1S = message.text
+            case '.3mf':
+                await upload_3mf(message.id, part.name, Parts3d)
             case 'filling':
                 part.filling = message.text
         await session.commit()
@@ -170,11 +176,19 @@ async def add_part(message: types.Message, state: FSMContext):
     await state.set_state(PartCreating.name)
     await message.answer('Введите имя:')
 
+
 @main_router.message(StateFilter(PartCreating.name))
 async def add_name(message: types.Message, state: FSMContext):
-    await state.set_state(PartCreating.count)
+    await state.set_state(PartCreating.image)
     await state.update_data(name=message.text)
+    await message.answer('Изображение: ')
+
+@main_router.message(StateFilter(PartCreating.image))
+async def add_image(message: types.Message, state: FSMContext):
+    await state.set_state(PartCreating.count)
+    await state.update_data(image=message.text)
     await message.answer('Количество: ')
+
 
 @main_router.message(StateFilter(PartCreating.count))
 async def add_count(message: types.Message, state: FSMContext):
@@ -202,20 +216,37 @@ async def add_P1S(message: types.Message, state: FSMContext):
 
 @main_router.message(StateFilter(PartCreating.filling))
 async def add_filling(message: types.Message, state: FSMContext):
+    await state.set_state(PartCreating.three_mf)
     await state.update_data(filling=message.text)
+    await message.answer('.3mf Файл: ')
+
+@main_router.message(StateFilter(PartCreating.three_mf))
+async def add_full_part(message: types.Message, state: FSMContext):
     session = await get_session()
     async with session.begin() as session:
         part = Parts3d(
             name=await state.get_value('name'),
+            image=await state.get_value('image'),
             count=await state.get_value('count'),
             weight=await state.get_value('weight'),
             time_on_A1mini=await state.get_value('A1mini'),
             time_on_P1S=await state.get_value('P1S'),
-            filling=await state.get_value('filling'))
+            filling=await state.get_value('filling'),
+            three_mf=message.text)
         session.add(part)
         await session.commit()
     await message.answer('Успешно!')
     await open_3d_model(message, state)
+
+@main_router.message(StateFilter(MainStates.in_parts3d), F.text == "Удалить")
+async def delete_part(message: types.Message, state: FSMContext):
+    async with (await get_session()).begin() as session:
+        part = await session.scalar(select(Parts3d).where(Parts3d.name == await state.get_value('part_name')))
+        await session.delete(part)
+        await session.commit()
+    await message.answer("Удаление детали прошло успешно!")
+    await open_3d_model(message, state)
+
 
 @main_router.message(StateFilter(MainStates.in_part3d_info,
                                  MainStates.in_parts3d), F.text == 'Назад')

@@ -50,6 +50,8 @@ class Parts3d(Base):
 
     id: Mapped[int] = Column(Integer(), primary_key=True)
     image: Mapped[str] = Column(String())
+    three_mf: Mapped[str] = Column(String())
+    old_three_mf: Mapped[str] = Column(String())
     name: Mapped[str] = Column(String())
     count: Mapped[Integer] = Column(Integer())
     weight: Mapped[Float] = Column(Float())

@@ -1,5 +1,7 @@
+from pyexpat.errors import messages
 from typing import Union, Type
 
+from aiogram import types
 from aiogram.methods import SendMessage
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder
 from sqlalchemy import select
@@ -87,17 +89,52 @@ async def get_part_info(part_name, part_class: Union[Type[Parts3d]]):
                     'weight': part_info.weight,
                     'A1mini': part_info.time_on_A1mini,
                     'P1S': part_info.time_on_P1S,
-                    'filling': part_info.filling}
+                    'filling': part_info.filling,}
+
+async def send_3mf(message: types.Message, part_name, part_class: Union[Type[Parts3d]]):
+    session = await get_session()
+    async with session.begin() as session:
+        part = await session.scalar(select(part_class).where(part_class.name == part_name))
+        three_mf: str = part.three_mf
+        old_three_mf: str = part.old_three_mf
+    if three_mf:
+        await message.answer(".3mf:")
+        await message.answer_document(three_mf)
+    else:
+        await message.answer("Не обнаружено")
+        return False
+    if old_three_mf:
+        await message.answer("Старый .3mf:")
+        await message.answer_document(old_three_mf)
+    return True
+
+
+async def upload_3mf(three_mf_id, part_name, part_class: Union[Type[Parts3d]]):
+    session = await get_session()
+    async with session.begin() as session:
+        part = await session.scalar(select(part_class).where(part_class.name == part_name))
+        old_three_mf = part.three_mf
+        part.three_mf = three_mf_id
+        part.old_three_mf = old_three_mf
+        await session.commit()
+
+async def get_image(part_name, part_class: Union[Type[Parts3d]]):
+    session = await get_session()
+    async with session.begin() as session:
+        part = await session.scalar(select(part_class).where(part_class.name == part_name))
+        return part.image
 
 async def construct_part_info_keyboard(part_name, part_class: Union[Type[Parts3d]]):
     part_info = await get_part_info(part_name, part_class)
     inline_keyboard = InlineKeyboardBuilder()
     #if isinstance(part_class, Parts3d):
-    inline_keyboard.button(text=f'Имя: {part_info["name"]}', callback_data='name')
-    inline_keyboard.button(text=f'Количество: {part_info["count"]}', callback_data='count')
+    inline_keyboard.button(text=f'Имя: {part_info["name"]} x{part_info["count"]}', callback_data='name')
+    inline_keyboard.button(text=f'Изображение', callback_data='image')
+    # inline_keyboard.button(text=f'Количество: x{part_info["count"]}', callback_data='count')
     inline_keyboard.button(text=f'Вес: {part_info["weight"]}', callback_data='weight')
     inline_keyboard.button(text=f'Время на А1mini: {part_info["A1mini"]}', callback_data='A1mini')
     inline_keyboard.button(text=f'Время на P1S: {part_info["P1S"]}', callback_data='P1S')
     inline_keyboard.button(text=f'Заполнение: {part_info["filling"]}', callback_data='filling')
+    inline_keyboard.button(text=f'.3mf', callback_data='three_mf')
     inline_keyboard.adjust(1)
     return inline_keyboard.as_markup(resize_keyboard=True)
