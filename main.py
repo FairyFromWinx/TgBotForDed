@@ -162,7 +162,7 @@ async def confirm_edit(message: types.Message, state: FSMContext):
                 part.time_on_A1mini = message.text
             case 'P1S':
                 part.time_on_P1S = message.text
-            case '.3mf':
+            case 'three_mf':
                 await upload_3mf(message.document.file_id, part.name, Parts3d)
             case 'filling':
                 part.filling = message.text
@@ -234,7 +234,7 @@ async def add_full_part(message: types.Message, state: FSMContext):
             time_on_A1mini=await state.get_value('A1mini'),
             time_on_P1S=await state.get_value('P1S'),
             filling=await state.get_value('filling'),
-            three_mf=message.document.file_id)
+            three_mf=message.document.file_id,)
         session.add(part)
         await session.commit()
     await message.answer('Успешно!')
