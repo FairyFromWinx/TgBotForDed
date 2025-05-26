@@ -75,7 +75,7 @@ async def parts_keyboard_constructor(class_: Union[Type[Parts3d]]):
         data = await session.scalars(select(Parts3d))
         for part in data:
             print(part.name)
-            inline_keyboard.button(text=part.name, callback_data=part.name)
+            inline_keyboard.button(text=part.name + f" x{part.count}", callback_data=part.name)
         #all(inline_keyboard.button(text=part.name, callback_data=part.name) for part in data)
     return text, keyboard.as_markup(resize_keyboard=True), inline_keyboard.as_markup(resize_keyboard=True)
 
@@ -128,9 +128,9 @@ async def construct_part_info_keyboard(part_name, part_class: Union[Type[Parts3d
     part_info = await get_part_info(part_name, part_class)
     inline_keyboard = InlineKeyboardBuilder()
     #if isinstance(part_class, Parts3d):
-    inline_keyboard.button(text=f'Имя: {part_info["name"]} x{part_info["count"]}', callback_data='name')
+    inline_keyboard.button(text=f'Имя: {part_info["name"]}', callback_data='name')
     inline_keyboard.button(text=f'Изображение', callback_data='image')
-    # inline_keyboard.button(text=f'Количество: x{part_info["count"]}', callback_data='count')
+    inline_keyboard.button(text=f'Количество: x{part_info["count"]}', callback_data='count')
     inline_keyboard.button(text=f'Вес: {part_info["weight"]}', callback_data='weight')
     inline_keyboard.button(text=f'Время на А1mini: {part_info["A1mini"]}', callback_data='A1mini')
     inline_keyboard.button(text=f'Время на P1S: {part_info["P1S"]}', callback_data='P1S')
