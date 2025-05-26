@@ -240,7 +240,7 @@ async def add_full_part(message: types.Message, state: FSMContext):
     await message.answer('Успешно!')
     await open_3d_model(message, state)
 
-@main_router.message(StateFilter(MainStates.in_parts3d), F.text == "Удалить")
+@main_router.message(StateFilter(MainStates.in_part3d_info), F.text == "Удалить")
 async def delete_part(message: types.Message, state: FSMContext):
     async with (await get_session()).begin() as session:
         part = await session.scalar(select(Parts3d).where(Parts3d.name == await state.get_value('part_name')))
