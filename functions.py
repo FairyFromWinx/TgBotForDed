@@ -77,7 +77,9 @@ async def parts_keyboard_constructor(class_: Union[Type[Parts3d]]):
             print(part.name)
             inline_keyboard.button(text=part.name + f" x{part.count}", callback_data=part.name)
         #all(inline_keyboard.button(text=part.name, callback_data=part.name) for part in data)
+    keyboard.adjust(1)
     return text, keyboard.as_markup(resize_keyboard=True), inline_keyboard.as_markup(resize_keyboard=True)
+
 
 async def get_part_info(part_name, part_class: Union[Type[Parts3d]]):
     session = await get_session()
