@@ -5,7 +5,6 @@ from aiogram.types import ReplyKeyboardMarkup, InlineKeyboardMarkup, KeyboardBut
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 from sqlalchemy.sql.base import elements
 
-
 class KeyboardBase(Enum):
     __inline__: bool
     __adjust__: list
@@ -38,3 +37,21 @@ class MainMenuMarkUp(KeyboardBase):
     modules3d = "3Д модули"
     electronics = "Электроника"
     ded = "Дед"
+
+class ElectronicsTypeMarkUp(KeyboardBase):
+    __inline__ = False
+    __adjust__ = [1]
+    __add_back_button__ = True
+
+
+    esc = "ESC"
+    polete_stacks = "Полетные стеки"
+    motors = "Моторы"
+    servs = "Сервы"
+    antennas = "Антенны"
+    cameras = "Камеры"
+    video_transmitters = "Видео передатчики"
+    batky = "Батки"
+    air_screws = "Воздушный винты"
+    razbery = "Разбери"
+
